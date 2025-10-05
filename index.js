@@ -452,19 +452,22 @@ class ZoomableSvg extends Component {
       // Get constraints
       const { constraints: { scaleExtent: [minZoom, maxZoom] } = { scaleExtent: [0, Infinity] } } = this.state;
       
-      // Enforce zoom limits
+      // Check if zoom would hit limits
+      const wouldHitMaxZoom = zoom > maxZoom;
+      const wouldHitMinZoom = zoom < minZoom;
+      
+      // If zoom would hit limits, don't change anything
+      if (wouldHitMaxZoom || wouldHitMinZoom) {
+        return; // Exit early, don't update state at all
+      }
+      
+      // Enforce zoom limits (this should not be needed now, but keeping for safety)
       if (zoom > maxZoom) zoom = maxZoom;
       if (zoom < minZoom) zoom = minZoom;
       
-      // If zoom hit limit, don't update position (prevent sliding)
-      let left, top;
-      if (zoom === initialZoom) {
-        left = initialLeft;
-        top = initialTop;
-      } else {
-        left = (initialLeft + dx - x) * touchZoom + x;
-        top = (initialTop + dy - y) * touchZoom + y;
-      }
+      // Calculate new position only if zoom is within limits
+      const left = (initialLeft + dx - x) * touchZoom + x;
+      const top = (initialTop + dy - y) * touchZoom + y;
 
       const nextState = {
         zoom,
