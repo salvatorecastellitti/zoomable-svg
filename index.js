@@ -447,9 +447,24 @@ class ZoomableSvg extends Component {
       const dx = x - initialX;
       const dy = y - initialY;
 
-      const left = (initialLeft + dx - x) * touchZoom + x;
-      const top = (initialTop + dy - y) * touchZoom + y;
-      const zoom = initialZoom * touchZoom;
+      let zoom = initialZoom * touchZoom;
+      
+      // Get constraints
+      const { constraints: { scaleExtent: [minZoom, maxZoom] } = { scaleExtent: [0, Infinity] } } = this.state;
+      
+      // Enforce zoom limits
+      if (zoom > maxZoom) zoom = maxZoom;
+      if (zoom < minZoom) zoom = minZoom;
+      
+      // If zoom hit limit, don't update position (prevent sliding)
+      let left, top;
+      if (zoom === initialZoom) {
+        left = initialLeft;
+        top = initialTop;
+      } else {
+        left = (initialLeft + dx - x) * touchZoom + x;
+        top = (initialTop + dy - y) * touchZoom + y;
+      }
 
       const nextState = {
         zoom,
@@ -494,19 +509,27 @@ class ZoomableSvg extends Component {
       top: initialTop,
       left: initialLeft,
       zoom: initialZoom,
+      constraints: { scaleExtent: [minZoom, maxZoom] } = { scaleExtent: [0, Infinity] },
     } = this.state;
     const { constrain } = this.props;
-
-    const left = (initialLeft - x) * dz + x;
-    const top = (initialTop - y) * dz + y;
-    const zoom = initialZoom * dz;
-
-    const nextState = {
-      zoom,
-      left,
-      top,
-    };
-
+  
+    // Calculate new zoom
+    let zoom = initialZoom * dz;
+  
+    // Enforce zoom limits strictly
+    if (zoom > maxZoom) zoom = maxZoom;
+    if (zoom < minZoom) zoom = minZoom;
+    
+    // If zoom didn't change (hit limit), don't update position
+    if (zoom === initialZoom) {
+      return;
+    }
+  
+    // Recalculate position based on new zoom
+    const left = (initialLeft - x) * (zoom / initialZoom) + x;
+    const top = (initialTop - y) * (zoom / initialZoom) + y;
+  
+    const nextState = { zoom, left, top };
     this.setState(constrain ? this.constrainExtent(nextState) : nextState);
   }
 
